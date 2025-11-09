@@ -54,9 +54,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Scenario tipico
 Pi-hole gira in un container Docker, la libreria gira sull'host.
 
-### Metodo Rapido: Script Helper
+### Metodo 1: Variabili d'ambiente (Raccomandato)
 
-Il modo più semplice per testare:
+Il modo più semplice per testare con path custom:
+
+```bash
+# Imposta le variabili d'ambiente
+export FTL_PID=12345
+export FTL_SHM_PATH=/mnt/shm-v6
+
+# Esegui qualsiasi esempio
+cargo run --example comprehensive
+cargo run --example summary
+```
+
+Gli esempi rileveranno automaticamente le variabili d'ambiente!
+
+### Metodo 2: Script Helper per Docker
+
+Trova automaticamente il PID dal container:
 
 ```bash
 # Usa lo script helper (verifica tutto automaticamente)
@@ -72,6 +88,27 @@ Lo script:
 - ✅ Verifica che i file shmem siano accessibili
 - ✅ Esegue l'esempio con i parametri corretti
 - ✅ Mostra errori dettagliati se qualcosa non funziona
+
+### Metodo 3: Test con versioni multiple
+
+Per testare con versioni diverse di FTL contemporaneamente:
+
+```bash
+# Organizza i file shm in directory separate
+mkdir -p /mnt/shm-v5 /mnt/shm-v6
+ln -s /dev/shm/FTL-<PID_V5>-* /mnt/shm-v5/
+ln -s /dev/shm/FTL-<PID_V6>-* /mnt/shm-v6/
+
+# Test su versione v5
+./test-versions.sh v5 /mnt/shm-v5 comprehensive
+
+# Test su versione v6
+./test-versions.sh v6 /mnt/shm-v6 comprehensive
+
+# Oppure usa variabili d'ambiente
+FTL_SHM_PATH=/mnt/shm-v5 cargo run --example comprehensive
+FTL_SHM_PATH=/mnt/shm-v6 cargo run --example comprehensive
+```
 
 ### Metodo Manuale
 
@@ -121,6 +158,11 @@ let stats = FtlStats::with_pid(12345)?;
 let stats = FtlStats::builder()
     .pid(12345)
     .shm_path("/custom/shm")
+    .build()?;
+
+// Leggi da variabili d'ambiente (FTL_PID, FTL_SHM_PATH)
+let stats = FtlStats::builder()
+    .from_env()
     .build()?;
 ```
 

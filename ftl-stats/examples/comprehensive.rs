@@ -4,9 +4,11 @@ use std::env;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== FTL Stats - Comprehensive Example ===\n");
 
-    // Gestione argomenti CLI
+    // Gestione argomenti CLI o variabili d'ambiente
     let args: Vec<String> = env::args().collect();
+
     let stats = if args.len() >= 2 {
+        // CLI arguments (backward compatibility)
         let pid: u32 = args[1].parse().expect("Invalid PID");
         if args.len() >= 3 {
             let shm_path = &args[2];
@@ -14,7 +16,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             FtlStats::with_pid(pid)?
         }
+    } else if env::var("FTL_PID").is_ok() || env::var("FTL_SHM_PATH").is_ok() {
+        // Environment variables
+        FtlStats::builder().from_env().build()?
     } else {
+        // Auto-discover
         FtlStats::new()?
     };
 

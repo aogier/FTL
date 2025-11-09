@@ -25,7 +25,7 @@ pub use api::stats::*;
 pub use error::{FtlError, Result};
 
 use shmem::reader::{ShmemConfig, ShmemReader};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Interfaccia principale per leggere statistiche FTL
 pub struct FtlStats {
@@ -219,13 +219,57 @@ pub struct FtlStatsBuilder {
 }
 
 impl FtlStatsBuilder {
+    /// Imposta il PID di FTL
     pub fn pid(mut self, pid: u32) -> Self {
         self.pid = Some(pid);
         self
     }
 
+    /// Imposta il path dei file shared memory
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use ftl_stats::FtlStats;
+    /// let stats = FtlStats::builder()
+    ///     .pid(12345)
+    ///     .shm_path("/custom/shm")
+    ///     .build()?;
+    /// # Ok::<(), ftl_stats::FtlError>(())
+    /// ```
     pub fn shm_path(mut self, path: impl AsRef<Path>) -> Self {
         self.shm_path = Some(path.as_ref().to_path_buf());
+        self
+    }
+
+    /// Legge configurazione da variabili d'ambiente
+    ///
+    /// - `FTL_PID`: PID del processo FTL
+    /// - `FTL_SHM_PATH`: Path dei file shared memory (default: /dev/shm)
+    ///
+    /// # Example
+    ///
+    /// ```bash
+    /// export FTL_PID=12345
+    /// export FTL_SHM_PATH=/mnt/shm-v5
+    /// ```
+    ///
+    /// ```no_run
+    /// # use ftl_stats::FtlStats;
+    /// let stats = FtlStats::builder()
+    ///     .from_env()
+    ///     .build()?;
+    /// # Ok::<(), ftl_stats::FtlError>(())
+    /// ```
+    pub fn from_env(mut self) -> Self {
+        if let Ok(pid_str) = std::env::var("FTL_PID") {
+            if let Ok(pid) = pid_str.parse::<u32>() {
+                self.pid = Some(pid);
+            }
+        }
+        if let Ok(path) = std::env::var("FTL_SHM_PATH") {
+            self.shm_path = Some(PathBuf::from(path));
+        }
         self
     }
 

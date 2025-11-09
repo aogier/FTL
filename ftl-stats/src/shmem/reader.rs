@@ -12,21 +12,26 @@ pub struct ShmemConfig {
 }
 
 impl ShmemConfig {
+    /// Auto-discover FTL PID e usa /dev/shm (o $FTL_SHM_PATH se impostato)
     pub fn auto_discover() -> Result<Self> {
         let pid = crate::shmem::pid::find_ftl_pid()?;
-        Ok(Self {
-            pid,
-            shm_path: PathBuf::from("/dev/shm"),
-        })
+        let shm_path = std::env::var("FTL_SHM_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("/dev/shm"));
+
+        Ok(Self { pid, shm_path })
     }
 
+    /// Usa PID specifico e /dev/shm (o $FTL_SHM_PATH se impostato)
     pub fn with_pid(pid: u32) -> Self {
-        Self {
-            pid,
-            shm_path: PathBuf::from("/dev/shm"),
-        }
+        let shm_path = std::env::var("FTL_SHM_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("/dev/shm"));
+
+        Self { pid, shm_path }
     }
 
+    /// Sovrascrivi il path di shared memory
     pub fn with_shm_path(mut self, path: impl AsRef<Path>) -> Self {
         self.shm_path = path.as_ref().to_path_buf();
         self
