@@ -1,6 +1,7 @@
 //! Conversioni da raw bindings a struct ergonomiche
 
 pub mod clients;
+pub mod constants;
 pub mod counters;
 pub mod domains;
 pub mod overtime;

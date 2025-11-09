@@ -1,26 +1,9 @@
 use crate::api::stats::{DnssecStatus, Query, QueryStatus, QueryType, ReplyType};
+use crate::convert::constants::*;
 use crate::convert::{timestamp_to_systime, validate_magic};
 use crate::error::Result;
 use crate::raw;
 use crate::shmem::reader::ShmemReader;
-
-// Valori hardcoded per query_type basati su FTL v6.x
-// Questo garantisce compatibilità anche se bindgen genera valori diversi
-const TYPE_A: u32 = 1;
-const TYPE_AAAA: u32 = 2;
-const TYPE_ANY: u32 = 3;
-const TYPE_SRV: u32 = 4;
-const TYPE_SOA: u32 = 5;
-const TYPE_PTR: u32 = 6;
-const TYPE_TXT: u32 = 7;
-const TYPE_NAPTR: u32 = 8;
-const TYPE_MX: u32 = 9;
-const TYPE_DS: u32 = 10;
-const TYPE_RRSIG: u32 = 11;
-const TYPE_DNSKEY: u32 = 12;
-const TYPE_NS: u32 = 13;
-const TYPE_SVCB: u32 = 15;
-const TYPE_HTTPS: u32 = 16;
 
 impl ShmemReader {
     /// Ottieni query recenti (ultime N)
@@ -136,7 +119,7 @@ impl ShmemReader {
 
     /// Converte query type usando valori hardcoded per stabilità cross-version
     fn convert_query_type(raw_type: u32) -> QueryType {
-        match raw_type {
+        match raw_type as usize {
             TYPE_A => QueryType::A,
             TYPE_AAAA => QueryType::AAAA,
             TYPE_ANY => QueryType::ANY,

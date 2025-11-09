@@ -1,4 +1,5 @@
 use crate::api::stats::{QueryStatus, QueryType, ReplyType, StatsSummary};
+use crate::convert::constants::*;
 use crate::raw;
 use crate::shmem::reader::ShmemReader;
 use std::collections::HashMap;
@@ -110,76 +111,80 @@ impl ShmemReader {
     fn extract_query_types(counters: &raw::countersStruct) -> HashMap<QueryType, u32> {
         let mut map = HashMap::new();
 
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_A as usize)
-        {
+        // Usa valori hardcoded invece di bindgen enum per compatibilità cross-version
+        if let Some(&count) = counters.querytype.get(TYPE_A) {
             if count > 0 {
                 map.insert(QueryType::A, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_AAAA as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_AAAA) {
             if count > 0 {
                 map.insert(QueryType::AAAA, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_PTR as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_PTR) {
             if count > 0 {
                 map.insert(QueryType::PTR, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_TXT as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_TXT) {
             if count > 0 {
                 map.insert(QueryType::TXT, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_MX as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_MX) {
             if count > 0 {
                 map.insert(QueryType::MX, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_SRV as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_SRV) {
             if count > 0 {
                 map.insert(QueryType::SRV, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_NAPTR as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_NAPTR) {
             if count > 0 {
                 map.insert(QueryType::NAPTR, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_SOA as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_SOA) {
             if count > 0 {
                 map.insert(QueryType::SOA, count);
             }
         }
-        if let Some(&count) = counters
-            .querytype
-            .get(raw::query_type::TYPE_ANY as usize)
-        {
+        if let Some(&count) = counters.querytype.get(TYPE_ANY) {
             if count > 0 {
                 map.insert(QueryType::ANY, count);
+            }
+        }
+        if let Some(&count) = counters.querytype.get(TYPE_DS) {
+            if count > 0 {
+                map.insert(QueryType::DS, count);
+            }
+        }
+        if let Some(&count) = counters.querytype.get(TYPE_RRSIG) {
+            if count > 0 {
+                map.insert(QueryType::RRSIG, count);
+            }
+        }
+        if let Some(&count) = counters.querytype.get(TYPE_DNSKEY) {
+            if count > 0 {
+                map.insert(QueryType::DNSKEY, count);
+            }
+        }
+        if let Some(&count) = counters.querytype.get(TYPE_NS) {
+            if count > 0 {
+                map.insert(QueryType::NS, count);
+            }
+        }
+        if let Some(&count) = counters.querytype.get(TYPE_SVCB) {
+            if count > 0 {
+                map.insert(QueryType::SVCB, count);
+            }
+        }
+        if let Some(&count) = counters.querytype.get(TYPE_HTTPS) {
+            if count > 0 {
+                map.insert(QueryType::HTTPS, count);
             }
         }
 
