@@ -101,6 +101,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!();
 
+    // === QUERY TYPES (DEBUG RAW ARRAY) ===
+    println!("━━━ DEBUG: RAW QUERYTYPE ARRAY ━━━");
+    let counters = stats.raw_counters();
+    println!("Array size: {}", counters.querytype.len());
+    for (idx, &count) in counters.querytype.iter().enumerate() {
+        if count > 0 {
+            println!("  Index {}: {} queries", idx, count);
+        }
+    }
+    println!();
+
     // === QUERY TYPES ===
     println!("━━━ QUERY TYPE DISTRIBUTION ━━━");
     let mut types: Vec<_> = summary.query_types.iter().collect();
