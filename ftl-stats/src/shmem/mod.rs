@@ -6,6 +6,7 @@ use std::path::Path;
 pub mod pid;
 pub mod reader;
 pub mod strings;
+pub mod version;
 
 /// Segmenti di shared memory disponibili
 #[derive(Debug, Clone, Copy)]
@@ -70,19 +71,4 @@ pub fn open_segment(
     let mmap = unsafe { Mmap::map(&file)? };
 
     Ok(mmap)
-}
-
-/// Verifica dimensione minima del segmento
-pub fn validate_segment_size(
-    mmap: &Mmap,
-    min_size: usize,
-    _segment: ShmSegment,
-) -> Result<()> {
-    if mmap.len() < min_size {
-        return Err(FtlError::ShmemTooSmall {
-            expected: min_size,
-            actual: mmap.len(),
-        });
-    }
-    Ok(())
 }

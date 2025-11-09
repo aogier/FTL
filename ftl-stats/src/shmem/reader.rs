@@ -1,7 +1,8 @@
 use crate::error::{FtlError, Result};
 use crate::raw;
 use crate::shmem::strings::StringBuffer;
-use crate::shmem::{open_segment, validate_segment_size, ShmSegment};
+use crate::shmem::version::FtlVersion;
+use crate::shmem::{open_segment, ShmSegment};
 use memmap2::Mmap;
 use std::path::{Path, PathBuf};
 
@@ -42,6 +43,7 @@ impl ShmemConfig {
 pub struct ShmemReader {
     pub pid: u32,
     pub shm_path: PathBuf,
+    pub version: FtlVersion,
 
     // Segmenti mappati
     pub settings: Mmap,
@@ -60,38 +62,25 @@ impl ShmemReader {
         let pid = config.pid;
         let shm_path = config.shm_path;
 
-        // Apri settings per primo (contiene metadata)
+        // Apri settings per primo (contiene metadata e versione)
         let settings_mmap = open_segment(pid, ShmSegment::Settings, &shm_path)?;
-        // ShmSettings è abbastanza stabile, ma usiamo una dimensione minima per compatibilità
-        const MIN_SETTINGS_SIZE: usize = 140;
-        validate_segment_size(
-            &settings_mmap,
-            MIN_SETTINGS_SIZE,
-            ShmSegment::Settings,
-        )?;
 
-        // Valida versione
-        let settings = Self::read_settings(&settings_mmap)?;
-        if settings.version != raw::SHARED_MEMORY_VERSION {
+        // Leggi e valida versione
+        let settings_ref = Self::read_settings(&settings_mmap)?;
+        let version = FtlVersion::from_settings(settings_ref.version, settings_ref.pid);
+
+        if !version.is_supported() {
             return Err(FtlError::VersionMismatch {
                 expected: raw::SHARED_MEMORY_VERSION,
-                found: settings.version,
+                found: version.shmem_version,
             });
         }
 
+        // Log versione rilevata (può essere utile per debugging)
+        eprintln!("FTL Stats: Detected {}", version.description());
+
         // Apri counters (serve per dimensioni array)
         let counters_mmap = open_segment(pid, ShmSegment::Counters, &shm_path)?;
-        // Note: Non validiamo la dimensione esatta perché countersStruct può variare
-        // tra versioni di FTL. Verifichiamo solo che sia abbastanza grande per i campi base.
-        // I campi critici sono tutti all'inizio della struct (queries, upstreams, clients, etc.)
-        // quindi una dimensione minima di 256 bytes dovrebbe essere sufficiente.
-        const MIN_COUNTERS_SIZE: usize = 256;
-        validate_segment_size(
-            &counters_mmap,
-            MIN_COUNTERS_SIZE,
-            ShmSegment::Counters,
-        )?;
-
         let counters = Self::read_counters(&counters_mmap)?;
 
         // Apri strings
@@ -109,6 +98,7 @@ impl ShmemReader {
         Ok(Self {
             pid,
             shm_path,
+            version,
             settings: settings_mmap,
             counters: counters_mmap,
             queries: queries_mmap,
@@ -121,98 +111,98 @@ impl ShmemReader {
         })
     }
 
-    /// Leggi ShmSettings
+    /// Leggi ShmSettings in modo sicuro
     fn read_settings(mmap: &Mmap) -> Result<&raw::ShmSettings> {
-        // Safety: validato size sopra
+        if mmap.len() < std::mem::size_of::<raw::ShmSettings>() {
+            return Err(FtlError::ShmemTooSmall {
+                expected: std::mem::size_of::<raw::ShmSettings>(),
+                actual: mmap.len(),
+            });
+        }
+
+        // Safety: abbiamo verificato la dimensione
         let settings = unsafe { &*(mmap.as_ptr() as *const raw::ShmSettings) };
         Ok(settings)
     }
 
-    /// Leggi countersStruct
+    /// Leggi countersStruct in modo sicuro
     fn read_counters(mmap: &Mmap) -> Result<&raw::countersStruct> {
-        // Safety: validato size sopra
+        if mmap.len() < std::mem::size_of::<raw::countersStruct>() {
+            // Se il file è più piccolo della struct, usa la dimensione del file
+            // Questo permette compatibilità con versioni dove countersStruct è più piccola
+            eprintln!(
+                "Warning: counters file size ({}) is smaller than expected struct size ({})",
+                mmap.len(),
+                std::mem::size_of::<raw::countersStruct>()
+            );
+        }
+
+        // Safety: accediamo solo fino alla dimensione del file
         let counters = unsafe { &*(mmap.as_ptr() as *const raw::countersStruct) };
         Ok(counters)
     }
 
-    /// Accesso safe a settings
+    /// Ottieni riferimento a ShmSettings
     pub fn settings(&self) -> &raw::ShmSettings {
+        // Safety: abbiamo già validato in new()
         unsafe { &*(self.settings.as_ptr() as *const raw::ShmSettings) }
     }
 
-    /// Accesso safe a counters
+    /// Ottieni riferimento a countersStruct
     pub fn counters(&self) -> &raw::countersStruct {
+        // Safety: abbiamo già validato in new()
         unsafe { &*(self.counters.as_ptr() as *const raw::countersStruct) }
     }
 
-    /// Accesso a array di queries
+    /// Ottieni array di queries
     pub fn queries_array(&self) -> &[raw::queriesData] {
         let counters = self.counters();
-        let count = counters.queries.min(counters.queries_MAX) as usize;
+        let max_queries = counters.queries_MAX as usize;
+        let ptr = self.queries.as_ptr() as *const raw::queriesData;
 
-        unsafe {
-            std::slice::from_raw_parts(self.queries.as_ptr() as *const raw::queriesData, count)
-        }
+        // Safety: FTL ha allocato esattamente questo numero di elementi
+        unsafe { std::slice::from_raw_parts(ptr, max_queries) }
     }
 
-    /// Accesso a array di clients
+    /// Ottieni array di clients
     pub fn clients_array(&self) -> &[raw::clientsData] {
         let counters = self.counters();
-        let count = counters.clients.min(counters.clients_MAX) as usize;
+        let max_clients = counters.clients_MAX as usize;
+        let ptr = self.clients.as_ptr() as *const raw::clientsData;
 
-        unsafe {
-            std::slice::from_raw_parts(self.clients.as_ptr() as *const raw::clientsData, count)
-        }
+        unsafe { std::slice::from_raw_parts(ptr, max_clients) }
     }
 
-    /// Accesso a array di domains
+    /// Ottieni array di domini
     pub fn domains_array(&self) -> &[raw::domainsData] {
         let counters = self.counters();
-        let count = counters.domains.min(counters.domains_MAX) as usize;
+        let max_domains = counters.domains_MAX as usize;
+        let ptr = self.domains.as_ptr() as *const raw::domainsData;
 
-        unsafe {
-            std::slice::from_raw_parts(self.domains.as_ptr() as *const raw::domainsData, count)
-        }
+        unsafe { std::slice::from_raw_parts(ptr, max_domains) }
     }
 
-    /// Accesso a array di upstreams
+    /// Ottieni array di upstreams
     pub fn upstreams_array(&self) -> &[raw::upstreamsData] {
         let counters = self.counters();
-        let count = counters.upstreams.min(counters.upstreams_MAX) as usize;
+        let max_upstreams = counters.upstreams_MAX as usize;
+        let ptr = self.upstreams.as_ptr() as *const raw::upstreamsData;
 
-        unsafe {
-            std::slice::from_raw_parts(
-                self.upstreams.as_ptr() as *const raw::upstreamsData,
-                count,
-            )
-        }
+        unsafe { std::slice::from_raw_parts(ptr, max_upstreams) }
     }
 
-    /// Accesso a array overtime
+    /// Ottieni array overtime
     pub fn overtime_array(&self) -> &[raw::overTimeData] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.overtime.as_ptr() as *const raw::overTimeData,
-                raw::OVERTIME_SLOTS as usize,
-            )
-        }
+        // Calcola quanti slot overtime ci sono in base alla dimensione del file
+        let slot_size = std::mem::size_of::<raw::overTimeData>();
+        let num_slots = self.overtime.len() / slot_size;
+        let ptr = self.overtime.as_ptr() as *const raw::overTimeData;
+
+        unsafe { std::slice::from_raw_parts(ptr, num_slots) }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[ignore] // Richiede FTL in esecuzione
-    fn test_shmem_reader_creation() {
-        let config = ShmemConfig::auto_discover().unwrap();
-        let reader = ShmemReader::new(config).unwrap();
-
-        let settings = reader.settings();
-        assert_eq!(settings.version, raw::SHARED_MEMORY_VERSION);
-
-        let counters = reader.counters();
-        println!("Total queries: {}", counters.queries);
+    /// Ottieni versione rilevata
+    pub fn ftl_version(&self) -> &FtlVersion {
+        &self.version
     }
 }

@@ -277,20 +277,37 @@ FTL (C) → /dev/shm/FTL-<PID>-* → bindgen → raw:: → convert → API pubbl
 
 - **FTL Shared Memory Version**: 14
 - **Platform**: Linux (x86_64, ARM)
-- **Tested with**: Pi-hole FTL v5.x, v6.x
-- **Version Tolerance**:
-  - ✅ Validazione flessibile delle dimensioni struct (supporta struct di dimensioni diverse)
-  - ✅ Query types hardcoded (MX, SOA, etc.) per stabilità cross-version
-  - ⚠️  Versioni molto vecchie di FTL potrebbero avere enum con valori diversi
+- **Tested with**: Pi-hole FTL v6.2, v6.3+
+- **Auto-detection**: La libreria rileva automaticamente la versione e si adatta
 
-### Note sulla compatibilità enum
+### Come funziona la compatibilità
 
-I valori degli enum dei query types sono **hardcoded** nella libreria basandosi su FTL v6.x. Questo garantisce che:
-- Una query MX viene sempre identificata correttamente come MX (valore 9)
-- Non ci sono discrepanze tra versioni diverse di FTL
-- La libreria non dipende dai valori generati da bindgen che potrebbero cambiare
+La libreria usa un approccio ibrido per massimizzare la compatibilità:
 
-**Versioni supportate**: FTL v5.18+ (dove l'ordine degli enum è stabile)
+1. **Rilevamento versione automatico**
+   - Legge `ShmSettings.version` all'avvio
+   - Mostra un warning se rileva dimensioni struct inaspettate
+   - Supporta SHARED_MEMORY_VERSION 14
+
+2. **Enum values hardcoded**
+   - I valori degli enum (TYPE_A=1, TYPE_MX=9, etc.) sono **hardcoded**
+   - Garantisce che query MX sia sempre MX, anche su versioni diverse
+   - Basato su FTL v6.x stabile
+
+3. **Struct flessibili**
+   - Non valida dimensioni esatte delle struct
+   - Permette dimensioni diverse tra FTL 6.2 e 6.3
+   - Accede solo ai campi che sappiamo esistere
+
+### Versioni testate
+
+| FTL Version | Status | Note |
+|-------------|--------|------|
+| 6.3+ | ✅ Fully supported | Versione di riferimento |
+| 6.2 | ✅ Supported | Struct di dimensioni diverse, ma compatibile |
+| 5.x | ⚠️  Untested | Potrebbe funzionare se shmem v14 |
+
+**Nota**: Se usi una versione non testata, la libreria mostrerà warning ma tenterà comunque di funzionare.
 
 ## Troubleshooting
 
