@@ -54,7 +54,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Scenario tipico
 Pi-hole gira in un container Docker, la libreria gira sull'host.
 
-### 1. Trova il PID di FTL nel container
+### Metodo Rapido: Script Helper
+
+Il modo più semplice per testare:
+
+```bash
+# Usa lo script helper (verifica tutto automaticamente)
+./test-with-docker.sh pihole summary
+./test-with-docker.sh pihole basic
+
+# Oppure con container name diverso
+./test-with-docker.sh my-pihole-container summary
+```
+
+Lo script:
+- ✅ Trova automaticamente il PID di FTL
+- ✅ Verifica che i file shmem siano accessibili
+- ✅ Esegue l'esempio con i parametri corretti
+- ✅ Mostra errori dettagliati se qualcosa non funziona
+
+### Metodo Manuale
+
+#### 1. Trova il PID di FTL nel container
 
 ```bash
 docker exec pihole pidof pihole-FTL
@@ -62,7 +83,7 @@ docker exec pihole pidof pihole-FTL
 docker exec pihole cat /run/pihole-FTL.pid
 ```
 
-### 2. Assicurati che /dev/shm sia condiviso
+#### 2. Assicurati che /dev/shm sia condiviso
 
 ```yaml
 # docker-compose.yml
@@ -72,7 +93,7 @@ services:
       - /dev/shm:/dev/shm  # ← Importante!
 ```
 
-### 3. Esegui gli esempi
+#### 3. Esegui gli esempi
 
 ```bash
 # Con auto-discovery (se FTL_PID file è accessibile)
@@ -83,15 +104,6 @@ cargo run --example summary 12345
 
 # Specificando PID e path custom
 cargo run --example summary 12345 /custom/shm
-```
-
-### Script di test rapido
-
-```bash
-#!/bin/bash
-FTL_PID=$(docker exec pihole pidof pihole-FTL)
-echo "Testing with FTL PID: $FTL_PID"
-cargo run --example summary $FTL_PID
 ```
 
 ## API Reference
