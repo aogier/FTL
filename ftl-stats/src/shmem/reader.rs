@@ -57,9 +57,11 @@ impl ShmemReader {
 
         // Apri settings per primo (contiene metadata)
         let settings_mmap = open_segment(pid, ShmSegment::Settings, &shm_path)?;
+        // ShmSettings è abbastanza stabile, ma usiamo una dimensione minima per compatibilità
+        const MIN_SETTINGS_SIZE: usize = 140;
         validate_segment_size(
             &settings_mmap,
-            std::mem::size_of::<raw::ShmSettings>(),
+            MIN_SETTINGS_SIZE,
             ShmSegment::Settings,
         )?;
 
@@ -74,9 +76,14 @@ impl ShmemReader {
 
         // Apri counters (serve per dimensioni array)
         let counters_mmap = open_segment(pid, ShmSegment::Counters, &shm_path)?;
+        // Note: Non validiamo la dimensione esatta perché countersStruct può variare
+        // tra versioni di FTL. Verifichiamo solo che sia abbastanza grande per i campi base.
+        // I campi critici sono tutti all'inizio della struct (queries, upstreams, clients, etc.)
+        // quindi una dimensione minima di 256 bytes dovrebbe essere sufficiente.
+        const MIN_COUNTERS_SIZE: usize = 256;
         validate_segment_size(
             &counters_mmap,
-            std::mem::size_of::<raw::countersStruct>(),
+            MIN_COUNTERS_SIZE,
             ShmSegment::Counters,
         )?;
 
