@@ -4,6 +4,24 @@ use crate::error::Result;
 use crate::raw;
 use crate::shmem::reader::ShmemReader;
 
+// Valori hardcoded per query_type basati su FTL v6.x
+// Questo garantisce compatibilità anche se bindgen genera valori diversi
+const TYPE_A: u32 = 1;
+const TYPE_AAAA: u32 = 2;
+const TYPE_ANY: u32 = 3;
+const TYPE_SRV: u32 = 4;
+const TYPE_SOA: u32 = 5;
+const TYPE_PTR: u32 = 6;
+const TYPE_TXT: u32 = 7;
+const TYPE_NAPTR: u32 = 8;
+const TYPE_MX: u32 = 9;
+const TYPE_DS: u32 = 10;
+const TYPE_RRSIG: u32 = 11;
+const TYPE_DNSKEY: u32 = 12;
+const TYPE_NS: u32 = 13;
+const TYPE_SVCB: u32 = 15;
+const TYPE_HTTPS: u32 = 16;
+
 impl ShmemReader {
     /// Ottieni query recenti (ultime N)
     pub fn recent_queries(&self, limit: usize) -> Vec<Query> {
@@ -58,10 +76,10 @@ impl ShmemReader {
             client_name,
             status: Self::convert_query_status(status_val),
             reply: Self::convert_reply_type(reply_val),
-            response_time_ms: raw_query.response * 1000.0, // sec to ms
+            response_time_ms: raw_query.response * 1000.0, // sec → ms
             upstream,
             dnssec: Self::convert_dnssec_status(dnssec_val),
-            blocked: Self::is_blocked_status(status_val),
+            blocked: Self::is_blocked(status_val),
             cname,
         })
     }
@@ -116,24 +134,25 @@ impl ShmemReader {
         }
     }
 
+    /// Converte query type usando valori hardcoded per stabilità cross-version
     fn convert_query_type(raw_type: u32) -> QueryType {
         match raw_type {
-            x if x == raw::query_type::TYPE_A as u32 => QueryType::A,
-            x if x == raw::query_type::TYPE_AAAA as u32 => QueryType::AAAA,
-            x if x == raw::query_type::TYPE_PTR as u32 => QueryType::PTR,
-            x if x == raw::query_type::TYPE_TXT as u32 => QueryType::TXT,
-            x if x == raw::query_type::TYPE_MX as u32 => QueryType::MX,
-            x if x == raw::query_type::TYPE_SRV as u32 => QueryType::SRV,
-            x if x == raw::query_type::TYPE_SOA as u32 => QueryType::SOA,
-            x if x == raw::query_type::TYPE_ANY as u32 => QueryType::ANY,
-            x if x == raw::query_type::TYPE_NAPTR as u32 => QueryType::NAPTR,
-            x if x == raw::query_type::TYPE_DS as u32 => QueryType::DS,
-            x if x == raw::query_type::TYPE_RRSIG as u32 => QueryType::RRSIG,
-            x if x == raw::query_type::TYPE_DNSKEY as u32 => QueryType::DNSKEY,
-            x if x == raw::query_type::TYPE_NS as u32 => QueryType::NS,
-            x if x == raw::query_type::TYPE_SVCB as u32 => QueryType::SVCB,
-            x if x == raw::query_type::TYPE_HTTPS as u32 => QueryType::HTTPS,
-            _ => QueryType::Other(0),
+            TYPE_A => QueryType::A,
+            TYPE_AAAA => QueryType::AAAA,
+            TYPE_ANY => QueryType::ANY,
+            TYPE_SRV => QueryType::SRV,
+            TYPE_SOA => QueryType::SOA,
+            TYPE_PTR => QueryType::PTR,
+            TYPE_TXT => QueryType::TXT,
+            TYPE_NAPTR => QueryType::NAPTR,
+            TYPE_MX => QueryType::MX,
+            TYPE_DS => QueryType::DS,
+            TYPE_RRSIG => QueryType::RRSIG,
+            TYPE_DNSKEY => QueryType::DNSKEY,
+            TYPE_NS => QueryType::NS,
+            TYPE_SVCB => QueryType::SVCB,
+            TYPE_HTTPS => QueryType::HTTPS,
+            _ => QueryType::Other(raw_type as u16),
         }
     }
 
@@ -170,12 +189,15 @@ impl ShmemReader {
         }
     }
 
-    fn is_blocked_status(status: u32) -> bool {
-        status == raw::query_status::QUERY_GRAVITY as u32
-            || status == raw::query_status::QUERY_REGEX as u32
-            || status == raw::query_status::QUERY_DENYLIST as u32
-            || status == raw::query_status::QUERY_EXTERNAL_BLOCKED_IP as u32
-            || status == raw::query_status::QUERY_EXTERNAL_BLOCKED_NULL as u32
-            || status == raw::query_status::QUERY_EXTERNAL_BLOCKED_NXRA as u32
+    fn is_blocked(status: u32) -> bool {
+        matches!(
+            status,
+            x if x == raw::query_status::QUERY_GRAVITY as u32 ||
+                 x == raw::query_status::QUERY_REGEX as u32 ||
+                 x == raw::query_status::QUERY_DENYLIST as u32 ||
+                 x == raw::query_status::QUERY_EXTERNAL_BLOCKED_IP as u32 ||
+                 x == raw::query_status::QUERY_EXTERNAL_BLOCKED_NULL as u32 ||
+                 x == raw::query_status::QUERY_EXTERNAL_BLOCKED_NXRA as u32
+        )
     }
 }

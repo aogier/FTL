@@ -236,7 +236,19 @@ FTL (C) → /dev/shm/FTL-<PID>-* → bindgen → raw:: → convert → API pubbl
 - **FTL Shared Memory Version**: 14
 - **Platform**: Linux (x86_64, ARM)
 - **Tested with**: Pi-hole FTL v5.x, v6.x
-- **Version Tolerance**: La libreria utilizza validazione flessibile delle dimensioni struct per supportare diverse versioni di FTL (forward/backward compatibility)
+- **Version Tolerance**:
+  - ✅ Validazione flessibile delle dimensioni struct (supporta struct di dimensioni diverse)
+  - ✅ Query types hardcoded (MX, SOA, etc.) per stabilità cross-version
+  - ⚠️  Versioni molto vecchie di FTL potrebbero avere enum con valori diversi
+
+### Note sulla compatibilità enum
+
+I valori degli enum dei query types sono **hardcoded** nella libreria basandosi su FTL v6.x. Questo garantisce che:
+- Una query MX viene sempre identificata correttamente come MX (valore 9)
+- Non ci sono discrepanze tra versioni diverse di FTL
+- La libreria non dipende dai valori generati da bindgen che potrebbero cambiare
+
+**Versioni supportate**: FTL v5.18+ (dove l'ordine degli enum è stabile)
 
 ## Troubleshooting
 
