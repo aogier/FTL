@@ -1,3 +1,0 @@
-cargo:rerun-if-changed=wrapper.h
-cargo:rerun-if-changed=/home/user/FTL/ftl-stats/../src
-cargo:warning=Bindings generated successfully

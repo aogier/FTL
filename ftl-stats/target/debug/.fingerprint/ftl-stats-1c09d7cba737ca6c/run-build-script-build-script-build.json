@@ -1,1 +1,0 @@
-{"rustc":8022303366561187541,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[12944141755875649099,"build_script_build",false,7392201872919969086]],"local":[{"RerunIfChanged":{"output":"debug/build/ftl-stats-1c09d7cba737ca6c/output","paths":["wrapper.h","../src"]}}],"rustflags":[],"config":0,"compile_kind":0}
