@@ -1,7 +1,11 @@
 //! Conversioni da raw bindings a struct ergonomiche
 
+pub mod clients;
 pub mod counters;
+pub mod domains;
+pub mod overtime;
 pub mod queries;
+pub mod upstreams;
 
 use crate::error::{FtlError, Result};
 use crate::raw;

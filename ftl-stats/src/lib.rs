@@ -130,6 +130,80 @@ impl FtlStats {
         self.reader.recent_queries(limit)
     }
 
+    /// Top domini più interrogati
+    ///
+    /// # Arguments
+    ///
+    /// * `limit` - Numero massimo di domini da ritornare
+    /// * `include_blocked` - Se true, include anche i domini bloccati
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use ftl_stats::FtlStats;
+    /// # let stats = FtlStats::new()?;
+    /// for domain in stats.top_domains(10, false) {
+    ///     println!("{}: {} queries", domain.domain, domain.count);
+    /// }
+    /// # Ok::<(), ftl_stats::FtlError>(())
+    /// ```
+    pub fn top_domains(&self, limit: usize, include_blocked: bool) -> Vec<DomainStats> {
+        self.reader.top_domains(limit, include_blocked)
+    }
+
+    /// Top client più attivi
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use ftl_stats::FtlStats;
+    /// # let stats = FtlStats::new()?;
+    /// for client in stats.top_clients(10) {
+    ///     println!("{}: {} queries ({} blocked)",
+    ///              client.ip, client.count, client.blocked_count);
+    /// }
+    /// # Ok::<(), ftl_stats::FtlError>(())
+    /// ```
+    pub fn top_clients(&self, limit: usize) -> Vec<ClientStats> {
+        self.reader.top_clients(limit)
+    }
+
+    /// Statistiche upstream DNS server
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use ftl_stats::FtlStats;
+    /// # let stats = FtlStats::new()?;
+    /// for upstream in stats.upstreams() {
+    ///     println!("{}: {} queries, {:.2}ms avg",
+    ///              upstream.ip, upstream.count, upstream.response_time_avg_ms);
+    /// }
+    /// # Ok::<(), ftl_stats::FtlError>(())
+    /// ```
+    pub fn upstreams(&self) -> Vec<UpstreamStats> {
+        self.reader.upstreams()
+    }
+
+    /// Dati overtime (serie temporale)
+    ///
+    /// Ritorna gli slot temporali da 10 minuti con statistiche aggregate.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use ftl_stats::FtlStats;
+    /// # let stats = FtlStats::new()?;
+    /// for slot in stats.overtime_data() {
+    ///     println!("{:?}: {} total, {} blocked",
+    ///              slot.timestamp, slot.total, slot.blocked);
+    /// }
+    /// # Ok::<(), ftl_stats::FtlError>(())
+    /// ```
+    pub fn overtime_data(&self) -> Vec<OvertimeSlot> {
+        self.reader.overtime_data()
+    }
+
     /// Accesso raw ai counters (interno, per ora pubblico per testing)
     #[doc(hidden)]
     pub fn raw_counters(&self) -> &raw::countersStruct {

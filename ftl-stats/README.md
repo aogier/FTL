@@ -138,6 +138,23 @@ let summary = stats.summary();
 // Query recenti
 let queries = stats.recent_queries(100);
 // → Vec<Query> con timestamp, type, domain, client, status, reply, etc.
+
+// Top domini (con/senza bloccati)
+let top_domains = stats.top_domains(10, false); // Solo allowed
+let all_domains = stats.top_domains(10, true);  // Include blocked
+// → Vec<DomainStats> con domain, count, blocked_count, last_query
+
+// Top client
+let top_clients = stats.top_clients(10);
+// → Vec<ClientStats> con ip, name, mac, count, blocked_count, last_query
+
+// Upstream server
+let upstreams = stats.upstreams();
+// → Vec<UpstreamStats> con ip, port, count, failed, response_time_avg_ms
+
+// Overtime data (serie temporale)
+let overtime = stats.overtime_data();
+// → Vec<OvertimeSlot> con timestamp, total, blocked, cached, forwarded
 ```
 
 ### Tipi Supportati
@@ -194,6 +211,7 @@ Vedi [`examples/README.md`](examples/README.md) per la guida completa.
 
 - **`basic.rs`**: Statistiche base e contatori raw
 - **`summary.rs`**: Dashboard completa con distribuzioni
+- **`comprehensive.rs`**: Esempio completo di tutte le API (domains, clients, upstreams, overtime)
 
 ## Architecture
 
