@@ -1,0 +1,30 @@
+[package]
+name = "ftl-stats"
+version = "0.1.0"
+authors = ["FTL Stats Contributors"]
+edition = "2021"
+rust-version = "1.70"
+license = "MIT OR Apache-2.0"
+description = "Read Pi-hole FTL statistics from shared memory"
+repository = "https://github.com/aogier/FTL"
+keywords = ["pihole", "ftl", "dns", "statistics", "monitoring"]
+categories = ["network-programming"]
+
+[dependencies]
+memmap2 = "0.9"              # Memory mapping sicuro
+libc = "0.2"                 # POSIX types
+thiserror = "1.0"            # Error handling ergonomico
+
+# Opzionali
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+
+[build-dependencies]
+bindgen = "0.69"
+
+[dev-dependencies]
+tempfile = "3.0"             # Mock shmem per test
+
+[features]
+default = []
+json = ["serde", "serde_json"]
