@@ -1,5 +1,5 @@
 use crate::api::stats::{QueryStatus, QueryType, ReplyType, StatsSummary};
-use crate::convert::constants::*;
+use crate::convert::constants::{FTL_6_2_TYPE_MAP, FTL_6_3_TYPE_MAP};
 use crate::raw;
 use crate::shmem::reader::ShmemReader;
 use std::collections::HashMap;
@@ -43,7 +43,7 @@ impl ShmemReader {
             clients_active: Self::count_active_clients(self),
             upstreams_total: counters.upstreams,
             queries_per_second: qps,
-            query_types: Self::extract_query_types(counters),
+            query_types: self.extract_query_types_from_queries(),
             status_distribution: Self::extract_status_distribution(counters),
             reply_types: Self::extract_reply_types(counters),
             gravity_size: counters.database.gravity as u32,
@@ -108,83 +108,27 @@ impl ShmemReader {
             .count() as u32
     }
 
-    fn extract_query_types(counters: &raw::countersStruct) -> HashMap<QueryType, u32> {
+    /// Estrae distribuzione query types dall'array counters.querytype[]
+    /// Usa mappature version-specific per gestire cambiamenti nell'ordine degli enum
+    fn extract_query_types_from_queries(&self) -> HashMap<QueryType, u32> {
+        let counters = self.counters();
+
+        // Rileva versione FTL dalla size del countersStruct
+        let counters_size = std::mem::size_of::<raw::countersStruct>();
+        let type_map = if counters_size >= 344 {
+            FTL_6_3_TYPE_MAP  // FTL 6.3+
+        } else {
+            FTL_6_2_TYPE_MAP  // FTL 6.2
+        };
+
         let mut map = HashMap::new();
 
-        // Usa valori hardcoded invece di bindgen enum per compatibilità cross-version
-        if let Some(&count) = counters.querytype.get(TYPE_A) {
-            if count > 0 {
-                map.insert(QueryType::A, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_AAAA) {
-            if count > 0 {
-                map.insert(QueryType::AAAA, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_PTR) {
-            if count > 0 {
-                map.insert(QueryType::PTR, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_TXT) {
-            if count > 0 {
-                map.insert(QueryType::TXT, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_MX) {
-            if count > 0 {
-                map.insert(QueryType::MX, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_SRV) {
-            if count > 0 {
-                map.insert(QueryType::SRV, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_NAPTR) {
-            if count > 0 {
-                map.insert(QueryType::NAPTR, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_SOA) {
-            if count > 0 {
-                map.insert(QueryType::SOA, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_ANY) {
-            if count > 0 {
-                map.insert(QueryType::ANY, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_DS) {
-            if count > 0 {
-                map.insert(QueryType::DS, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_RRSIG) {
-            if count > 0 {
-                map.insert(QueryType::RRSIG, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_DNSKEY) {
-            if count > 0 {
-                map.insert(QueryType::DNSKEY, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_NS) {
-            if count > 0 {
-                map.insert(QueryType::NS, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_SVCB) {
-            if count > 0 {
-                map.insert(QueryType::SVCB, count);
-            }
-        }
-        if let Some(&count) = counters.querytype.get(TYPE_HTTPS) {
-            if count > 0 {
-                map.insert(QueryType::HTTPS, count);
+        // Itera sulla mappatura e legge i count dall'array
+        for &(index, query_type) in type_map.iter() {
+            if let Some(&count) = counters.querytype.get(index) {
+                if count > 0 {
+                    map.insert(query_type, count);
+                }
             }
         }
 

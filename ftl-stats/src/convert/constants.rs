@@ -1,21 +1,47 @@
-//! Valori hardcoded degli enum per garantire compatibilità cross-version
+//! Mappature query type per diverse versioni FTL
 //!
-//! Questi valori sono basati su FTL v6.x e rimangono stabili anche quando
-//! bindgen genera valori diversi da versioni differenti di FTL.
+//! L'ordine dell'enum query_type è cambiato tra le versioni FTL,
+//! quindi manteniamo mappature esplicite per ogni versione nota.
 
-/// Query type values (basato su enum query_type in FTL)
-pub const TYPE_A: usize = 1;
-pub const TYPE_AAAA: usize = 2;
-pub const TYPE_ANY: usize = 3;
-pub const TYPE_SRV: usize = 4;
-pub const TYPE_SOA: usize = 5;
-pub const TYPE_PTR: usize = 6;
-pub const TYPE_TXT: usize = 7;
-pub const TYPE_NAPTR: usize = 8;
-pub const TYPE_MX: usize = 9;
-pub const TYPE_DS: usize = 10;
-pub const TYPE_RRSIG: usize = 11;
-pub const TYPE_DNSKEY: usize = 12;
-pub const TYPE_NS: usize = 13;
-pub const TYPE_SVCB: usize = 15;
-pub const TYPE_HTTPS: usize = 16;
+use crate::api::stats::QueryType;
+
+/// Mappatura query types per FTL 6.3+ (struct size >= 344 bytes)
+pub const FTL_6_3_TYPE_MAP: &[(usize, QueryType)] = &[
+    (1, QueryType::A),
+    (2, QueryType::AAAA),
+    (3, QueryType::ANY),
+    (4, QueryType::SRV),
+    (5, QueryType::SOA),
+    (6, QueryType::PTR),
+    (7, QueryType::TXT),
+    (8, QueryType::NAPTR),
+    (9, QueryType::MX),
+    (10, QueryType::DS),
+    (11, QueryType::RRSIG),
+    (12, QueryType::DNSKEY),
+    (13, QueryType::NS),
+    // 14 è TYPE_OTHER, lo skippiamo
+    (15, QueryType::SVCB),
+    (16, QueryType::HTTPS),
+];
+
+/// Mappatura query types per FTL 6.2 (struct size < 344 bytes)
+/// In questa versione, MX e SOA erano in posizioni diverse
+pub const FTL_6_2_TYPE_MAP: &[(usize, QueryType)] = &[
+    (1, QueryType::A),
+    (2, QueryType::AAAA),
+    (3, QueryType::ANY),
+    (4, QueryType::SRV),
+    (5, QueryType::MX),     // Diverso da 6.3!
+    (6, QueryType::SOA),    // Diverso da 6.3!
+    (7, QueryType::PTR),    // Shiftato rispetto a 6.3
+    (8, QueryType::TXT),    // Shiftato rispetto a 6.3
+    (9, QueryType::NAPTR),  // Shiftato rispetto a 6.3
+    (10, QueryType::DS),
+    (11, QueryType::RRSIG),
+    (12, QueryType::DNSKEY),
+    (13, QueryType::NS),
+    // TYPE_OTHER sarebbe 14
+    (15, QueryType::SVCB),
+    (16, QueryType::HTTPS),
+];
