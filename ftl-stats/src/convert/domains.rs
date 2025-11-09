@@ -10,6 +10,7 @@ impl ShmemReader {
         let domains = self.domains_array();
         let mut domain_stats: Vec<DomainStats> = domains
             .iter()
+            .filter(|d| d.magic == raw::MAGICBYTE as u8) // Solo domini validi
             .filter_map(|raw_domain| self.convert_domain(raw_domain).ok())
             .filter(|ds| include_blocked || ds.blocked_count == 0)
             .collect();

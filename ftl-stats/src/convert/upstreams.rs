@@ -10,6 +10,7 @@ impl ShmemReader {
         let upstreams = self.upstreams_array();
         upstreams
             .iter()
+            .filter(|u| u.magic == raw::MAGICBYTE as u8) // Solo upstream validi
             .filter_map(|raw_upstream| self.convert_upstream(raw_upstream).ok())
             .collect()
     }

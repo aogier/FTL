@@ -10,6 +10,7 @@ impl ShmemReader {
         let clients = self.clients_array();
         let mut client_stats: Vec<ClientStats> = clients
             .iter()
+            .filter(|c| c.magic == raw::MAGICBYTE as u8) // Solo client validi
             .filter_map(|raw_client| self.convert_client(raw_client).ok())
             .collect();
 
