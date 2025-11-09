@@ -113,9 +113,9 @@ impl ShmemReader {
     fn extract_query_types_from_queries(&self) -> HashMap<QueryType, u32> {
         let counters = self.counters();
 
-        // Rileva versione FTL dalla size del countersStruct
-        let counters_size = std::mem::size_of::<raw::countersStruct>();
-        let type_map = if counters_size >= 344 {
+        // Rileva versione FTL dalla size EFFETTIVA del file counters (non dalla struct compilata!)
+        let counters_file_size = self.counters.len();
+        let type_map = if counters_file_size >= 344 {
             FTL_6_3_TYPE_MAP  // FTL 6.3+
         } else {
             FTL_6_2_TYPE_MAP  // FTL 6.2
