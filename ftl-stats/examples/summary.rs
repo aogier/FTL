@@ -1,12 +1,37 @@
 use ftl_stats::FtlStats;
+use std::env;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("╔══════════════════════════════════════╗");
     println!("║    Pi-hole FTL Statistics Summary    ║");
     println!("╚══════════════════════════════════════╝\n");
 
-    // Connect to FTL
-    let stats = FtlStats::new()?;
+    // Parse command line arguments
+    let args: Vec<String> = env::args().collect();
+
+    let stats = if args.len() >= 2 {
+        // PID provided as argument
+        let pid: u32 = args[1].parse().expect("Invalid PID");
+
+        if args.len() >= 3 {
+            // Both PID and SHM path provided
+            let shm_path = &args[2];
+            println!("Connecting to FTL PID {} at {}", pid, shm_path);
+            FtlStats::builder()
+                .pid(pid)
+                .shm_path(shm_path)
+                .build()?
+        } else {
+            // Only PID provided, use default /dev/shm
+            println!("Connecting to FTL PID {} at /dev/shm", pid);
+            FtlStats::with_pid(pid)?
+        }
+    } else {
+        // Auto-discover
+        println!("Auto-discovering FTL...");
+        FtlStats::new()?
+    };
+
     println!("✓ Connected to FTL (PID: {})\n", stats.ftl_pid());
 
     // Get summary
